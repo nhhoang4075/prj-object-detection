@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Captures - Object Detection</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+        min-height: 100vh;
+        color: #333;
+      }
+      header {
+        background: #fff;
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+        padding: 0 40px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 70px;
+      }
+      nav {
+        display: flex;
+        gap: 8px;
+      }
+      nav a {
+        padding: 10px 20px;
+        color: #64748b;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      nav a:hover {
+        background: #f1f5f9;
+        color: #334155;
+      }
+      nav a.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+      main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+      .page-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      h1 {
+        font-size: 32px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .subtitle {
+        color: #64748b;
+        font-size: 15px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-secondary {
+        background: #fff;
+        color: #64748b;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
+      .btn-secondary:hover {
+        background: #f8fafc;
+        color: #334155;
+      }
+      .btn-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+      }
+      .btn-danger:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+      }
+      .gallery-item {
+        background: #fff;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+      }
+      .gallery-item:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+      }
+      .gallery-item img {
+        width: 100%;
+        display: block;
+        aspect-ratio: 4/3;
+        object-fit: cover;
+      }
+      .gallery-item-info {
+        padding: 16px 18px;
+      }
+      .gallery-item-classes {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .class-tag {
+        padding: 4px 10px;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #dc2626;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .gallery-item-time {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .gallery-item-delete {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        color: #ef4444;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 20px;
+        opacity: 0;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+      .gallery-item:hover .gallery-item-delete {
+        opacity: 1;
+      }
+      .gallery-item-delete:hover {
+        background: #ef4444;
+        color: #fff;
+      }
+      .gallery-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 80px 20px;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+      }
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      .empty-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+      }
+      .empty-text {
+        color: #94a3b8;
+        font-size: 15px;
+      }
+
+      /* Modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        backdrop-filter: blur(10px);
+      }
+      .modal.active {
+        display: flex;
+      }
+      .modal img {
+        max-width: 90%;
+        max-height: 75%;
+        border-radius: 12px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+      }
+      .modal-info {
+        margin-top: 24px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 16px 30px;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+      }
+      .modal-classes {
+        color: #fff;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .modal-time {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+      }
+      .modal-close {
+        position: absolute;
+        top: 24px;
+        right: 30px;
+        font-size: 32px;
+        color: #fff;
+        cursor: pointer;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        transition: background 0.2s;
+      }
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .modal-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 36px;
+        color: #fff;
+        cursor: pointer;
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        transition: background 0.2s;
+        user-select: none;
+      }
+      .modal-nav:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .modal-prev {
+        left: 24px;
+      }
+      .modal-next {
+        right: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-content">
+        <nav>
+          <a href="/">Detection</a>
+          <a href="/captures" class="active">Captures</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="page-header">
+        <div class="page-title">
+          <h1>Captured Detections</h1>
+          <p id="stats" class="subtitle">Loading...</p>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" onclick="loadCaptures()">
+            <span>↻</span> Refresh
+          </button>
+          <button class="btn btn-danger" onclick="deleteAll()">
+            <span>✕</span> Delete All
+          </button>
+        </div>
+      </div>
+
+      <div id="gallery" class="gallery"></div>
+    </main>
+
+    <div id="modal" class="modal">
+      <span class="modal-close" onclick="closeModal()">✕</span>
+      <span class="modal-nav modal-prev" onclick="prevImage()">‹</span>
+      <span class="modal-nav modal-next" onclick="nextImage()">›</span>
+      <img id="modal-img" src="" alt="Capture" />
+      <div class="modal-info">
+        <div id="modal-classes" class="modal-classes"></div>
+        <div id="modal-time" class="modal-time"></div>
+      </div>
+    </div>
+
+    <script>
+      const galleryEl = document.getElementById("gallery");
+      const statsEl = document.getElementById("stats");
+      const modal = document.getElementById("modal");
+      const modalImg = document.getElementById("modal-img");
+      const modalClasses = document.getElementById("modal-classes");
+      const modalTime = document.getElementById("modal-time");
+
+      let captures = [];
+      let currentIndex = 0;
+
+      async function loadCaptures() {
+        try {
+          const res = await fetch("/api/captures");
+          const data = await res.json();
+          captures = data.captures;
+
+          statsEl.textContent = `${captures.length} image${
+            captures.length !== 1 ? "s" : ""
+          } captured`;
+
+          if (captures.length === 0) {
+            galleryEl.innerHTML = `
+                        <div class="gallery-empty">
+                            <div class="empty-title">No captures yet</div>
+                            <div class="empty-text">Go to the Detection page to start capturing images</div>
+                        </div>
+                    `;
+            return;
+          }
+
+          galleryEl.innerHTML = captures
+            .map(
+              (cap, index) => `
+                    <div class="gallery-item" onclick="openModal(${index})">
+                        <img src="${cap.url}" alt="${cap.classes}">
+                        <button class="gallery-item-delete" onclick="deleteCapture('${
+                          cap.filename
+                        }', event)">✕</button>
+                        <div class="gallery-item-info">
+                            <div class="gallery-item-classes">
+                                ${cap.classes
+                                  .split("_")
+                                  .map(
+                                    (c) => `<span class="class-tag">${c}</span>`
+                                  )
+                                  .join("")}
+                            </div>
+                            <div class="gallery-item-time">${formatTimestamp(
+                              cap.timestamp
+                            )}</div>
+                        </div>
+                    </div>
+                `
+            )
+            .join("");
+        } catch (err) {
+          console.error("Failed to load captures:", err);
+          galleryEl.innerHTML = `
+                    <div class="gallery-empty">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-title">Failed to load captures</div>
+                        <div class="empty-text">Please try refreshing the page</div>
+                    </div>
+                `;
+        }
+      }
+
+      function formatTimestamp(ts) {
+        const year = ts.slice(0, 4);
+        const month = ts.slice(4, 6);
+        const day = ts.slice(6, 8);
+        const hour = ts.slice(9, 11);
+        const min = ts.slice(11, 13);
+        const sec = ts.slice(13, 15);
+        return `${year}-${month}-${day} at ${hour}:${min}:${sec}`;
+      }
+
+      async function deleteCapture(filename, event) {
+        event.stopPropagation();
+        if (!confirm("Delete this capture?")) return;
+
+        try {
+          await fetch(`/api/captures/${filename}`, { method: "DELETE" });
+          loadCaptures();
+        } catch (err) {
+          console.error("Failed to delete:", err);
+        }
+      }
+
+      async function deleteAll() {
+        if (captures.length === 0) return;
+        if (
+          !confirm(
+            `Delete all ${captures.length} captures? This cannot be undone.`
+          )
+        )
+          return;
+
+        try {
+          for (const cap of captures) {
+            await fetch(`/api/captures/${cap.filename}`, { method: "DELETE" });
+          }
+          loadCaptures();
+        } catch (err) {
+          console.error("Failed to delete all:", err);
+        }
+      }
+
+      function openModal(index) {
+        currentIndex = index;
+        updateModal();
+        modal.classList.add("active");
+      }
+
+      function updateModal() {
+        const cap = captures[currentIndex];
+        modalImg.src = cap.url;
+        modalClasses.textContent = cap.classes.replace(/_/g, ", ");
+        modalTime.textContent = formatTimestamp(cap.timestamp);
+      }
+
+      function closeModal() {
+        modal.classList.remove("active");
+      }
+
+      function prevImage() {
+        currentIndex = (currentIndex - 1 + captures.length) % captures.length;
+        updateModal();
+      }
+
+      function nextImage() {
+        currentIndex = (currentIndex + 1) % captures.length;
+        updateModal();
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (!modal.classList.contains("active")) return;
+        if (e.key === "Escape") closeModal();
+        if (e.key === "ArrowLeft") prevImage();
+        if (e.key === "ArrowRight") nextImage();
+      });
+
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      loadCaptures();
+    </script>
+  </body>
+</html>

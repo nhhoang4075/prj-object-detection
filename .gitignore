@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dataset (quá lớn)
+dataset/
+*.zip
+
+# Model weights
+runs/
+*.pt
+*.onnx
+
+# Logs
+logs/
+captures/
+
+# IDE
+.vscode/
+.idea/

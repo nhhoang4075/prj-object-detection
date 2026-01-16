@@ -1,23 +1,65 @@
-import cv2
+import cv2 as cv
 from ultralytics import YOLO
 from datetime import datetime
 import os
-
-if not os.path.exists("logs"):
-    os.makedirs("logs")
-
-model = YOLO("yolov8n.pt")
-
-DANGEROUS_CLASSES = ["knife", "scissors", "person"]
-
-cap = cv2.VideoCapture(0)
 
 
 def log_detection(class_name, confidence):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open("logs/detections.txt", "a", encoding="utf-8") as f:
         f.write(
-            f"{timestamp} - Phát hiện {class_name} (Độ tin cậy: {confidence:.2f})\n"
+            f'{timestamp} - Phát hiện "{class_name}" (Độ tin cậy: {confidence:.2f})\n'
+        )
+
+
+def draw_detection(frame, name, conf, pos):
+    x1, y1, x2, y2 = pos
+
+    is_dangerous = name in DANGEROUS_CLASSES
+    color = (0, 55, 255) if is_dangerous else (55, 255, 0)
+
+    label = f"{name} {int(conf * 100)}%"
+
+    font = cv.FONT_HERSHEY_SIMPLEX
+    font_scale = 1.2
+    font_color = (0, 0, 0)
+    thickness = 4
+
+    (text_width, text_height), baseline = cv.getTextSize(
+        label, font, font_scale, thickness
+    )
+
+    cv.rectangle(frame, (x1, y1), (x2, y2), color, 4)
+
+    if y1 < text_height * 4:
+        cv.rectangle(
+            frame,
+            (x2 - text_width - 30, y1),
+            (x2, y1 + text_height + baseline + 16),
+            color,
+            -1,
+        )
+
+        cv.putText(
+            frame,
+            label,
+            (x2 - text_width - 14, y1 + text_height + baseline),
+            font,
+            font_scale,
+            font_color,
+            thickness,
+        )
+    else:
+        cv.rectangle(
+            frame,
+            (x1 - 2, y1 - text_height - baseline - 16),
+            (x1 + text_width + 32, y1),
+            color,
+            -1,
+        )
+
+        cv.putText(
+            frame, label, (x1 + 16, y1 - 16), font, font_scale, font_color, thickness
         )
 
 
@@ -25,58 +67,60 @@ def play_alert_sound():
     pass
 
 
+os.makedirs("logs", exist_ok=True)
+
+model = YOLO("results/finetuned/train/weights/best.pt")
+
+cap = cv.VideoCapture(0)
+
+assert cap.isOpened(), "Can not open camera!"
+
+camera_fps = cap.get(cv.CAP_PROP_FPS)
+
+frame_count = 0
+model_results = None
+
+DANGEROUS_CLASSES = ["knife", "scissors"]
+FRAMES_PER_DETECTION = 3
+
 while True:
     ret, frame = cap.read()
 
     if not ret:
         break
 
-    results = model(frame, conf=0.5)  # confidence threshold = 0.5
+    frame_count += 1
 
-    for result in results:
-        boxes = result.boxes
-        for box in boxes:
-            class_id = int(box.cls[0])
-            class_name = model.names[class_id]
-            confidence = float(box.conf[0])
+    frame = cv.flip(frame, 1)
 
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
+    if frame_count % FRAMES_PER_DETECTION == 0:
+        model_results = model(frame, conf=0.5)
 
-            is_dangerous = class_name in DANGEROUS_CLASSES
-
-            if is_dangerous:
-                color = (0, 0, 255)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
-
-                label = f"DANGEROUS! {class_name} {confidence:.2f}"
-                cv2.putText(
-                    frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2
+    if model_results:
+        for result in model_results:
+            boxes = result.boxes
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]
+                confidence = float(box.conf[0])
+                draw_detection(
+                    frame, name=class_name, conf=confidence, pos=map(int, box.xyxy[0])
                 )
 
-                log_detection(class_name, confidence)
-            else:
-                color = (0, 255, 0)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                label = f"{class_name} {confidence:.2f}"
-                cv2.putText(
-                    frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2
-                )
-
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    cv2.putText(
+    cv.putText(
         frame,
-        f"FPS: {fps}",
-        (10, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
+        f"FPS: {camera_fps}",
+        (10, 50),
+        cv.FONT_HERSHEY_SIMPLEX,
+        1.5,
         (255, 255, 255),
-        2,
+        3,
     )
 
-    cv2.imshow("Object Detection", frame)
+    cv.imshow("Object Detection", frame)
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    if cv.waitKey(1) & 0xFF == ord("q"):
         break
 
 cap.release()
-cv2.destroyAllWindows()
+cv.destroyAllWindows()
