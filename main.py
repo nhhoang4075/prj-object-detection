@@ -69,7 +69,7 @@ def play_alert_sound():
 
 os.makedirs("logs", exist_ok=True)
 
-model = YOLO("results-2/runs/detect/train/weights/best.pt")
+model = YOLO("results/finetuned/train/weights/best.pt")
 
 cap = cv.VideoCapture(0)
 
@@ -80,7 +80,7 @@ camera_fps = cap.get(cv.CAP_PROP_FPS)
 frame_count = 0
 model_results = None
 
-DANGEROUS_CLASSES = ["knife", "scissors", "person"]
+DANGEROUS_CLASSES = ["knife", "scissors"]
 FRAMES_PER_DETECTION = 3
 
 while True:
@@ -94,7 +94,7 @@ while True:
     frame = cv.flip(frame, 1)
 
     if frame_count % FRAMES_PER_DETECTION == 0:
-        model_results = model(frame, conf=0.3)
+        model_results = model(frame, conf=0.5)
 
     if model_results:
         for result in model_results:

@@ -1,3 +1,7 @@
 ultralytics
 opencv-python
 pandas
+fastapi
+uvicorn[standard]
+python-multipart
+websockets
